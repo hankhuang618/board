@@ -753,6 +753,16 @@ const app = new Vue({
         if (modeChanged) {
           this.fetchTableData();
           this.getEFFData();
+        const wasLocked = this.isAdjustmentLocked;
+        this.isAdjustmentLocked = normalizedMode === 0;
+
+        if (this.isAdjustmentLocked) {
+          if (this.editMode) {
+            this.editMode = false;
+          }
+          if (!wasLocked || previousMode !== normalizedMode) {
+            this.fetchTableData();
+          }
         }
       } catch (error) {
         console.error('Failed to fetch PD mode:', error);
