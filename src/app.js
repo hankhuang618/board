@@ -318,6 +318,9 @@ const app = new Vue({
     showyear : false,
     showCLASS: true,
     showDemoContent: false,
+    pdMode: 1,
+    pdModeIntervalId: null,
+    isAdjustmentLocked: false,
     REWOID:false,
     woderpreport:false,
     iframeHeight:500,
@@ -725,9 +728,37 @@ const app = new Vue({
         ])
       : null
   ]);
-  
+
 },
-  
+
+    async pollPdMode() {
+      try {
+        const response = await axios.get('https://mms.leapoptical.com:5088/api/Center/getPDMode');
+        const rawMode = response.data?.model ?? response.data?.MODEL;
+        const parsedMode = Number(rawMode);
+        if (Number.isNaN(parsedMode)) {
+          console.warn('Invalid PD mode value:', rawMode);
+          return;
+        }
+        const normalizedMode = parsedMode === 0 ? 0 : 1;
+        const previousMode = this.pdMode;
+        this.pdMode = normalizedMode;
+        this.isAdjustmentLocked = normalizedMode === 0;
+        const modeChanged = previousMode !== normalizedMode;
+
+        if (this.isAdjustmentLocked && this.editMode) {
+          this.editMode = false;
+        }
+
+        if (modeChanged) {
+          this.fetchTableData();
+          this.getEFFData();
+        }
+      } catch (error) {
+        console.error('Failed to fetch PD mode:', error);
+      }
+    },
+
 getEFFData() {
       const today = new Date();
   const year = today.getFullYear();
@@ -985,7 +1016,13 @@ getEFFData() {
 }
     },
     async toggleEditMode() { // 確保這裡是 async
-    this.editMode = !this.editMode;
+      if (this.isAdjustmentLocked) {
+        if (this.$message) {
+          this.$message.warning('調整功能已鎖定');
+        }
+        return;
+      }
+      this.editMode = !this.editMode;
     const today = new Date();
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, '0'); // 補零
@@ -6762,7 +6799,7 @@ getEFFData() {
      console.log('showInSecondTable:',  this.showInSecondTable)
   },
   mounted() {
-  
+
     window.addEventListener('keydown', this.handleKeydown);
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -6794,9 +6831,13 @@ getEFFData() {
     if (savedselectedL) {
       this.selectedL = savedselectedL;
     }   
-  
+
     this.MFG_D = this.getCurrentDate();
     this.fetchTableData();
+    this.pollPdMode();
+    this.pdModeIntervalId = setInterval(() => {
+      this.pollPdMode();
+    }, 5000);
     setInterval(() => {
       this.currentTime = new Date().toLocaleTimeString();
     }, 1000);
@@ -6809,8 +6850,15 @@ getEFFData() {
     }, 15000);
     this.getEFFData()
     this.updateTimeOptions();
-    
+
    },
+
+  beforeDestroy() {
+    if (this.pdModeIntervalId) {
+      clearInterval(this.pdModeIntervalId);
+      this.pdModeIntervalId = null;
+    }
+  },
   
   
   });
