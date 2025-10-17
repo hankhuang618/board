@@ -743,6 +743,16 @@ const app = new Vue({
         const normalizedMode = parsedMode === 0 ? 0 : 1;
         const previousMode = this.pdMode;
         this.pdMode = normalizedMode;
+        this.isAdjustmentLocked = normalizedMode === 0;
+        const modeChanged = previousMode !== normalizedMode;
+
+        if (this.isAdjustmentLocked && this.editMode) {
+          this.editMode = false;
+        }
+
+        if (modeChanged) {
+          this.fetchTableData();
+          this.getEFFData();
         const wasLocked = this.isAdjustmentLocked;
         this.isAdjustmentLocked = normalizedMode === 0;
 
