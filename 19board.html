@@ -151,10 +151,10 @@
     
       <template >
         <div style="margin-bottom: 10px;">
-          <el-button type="warning" @click="toggleEditMode" style="float: left;">
+          <el-button type="warning" @click="toggleEditMode" :disabled="isAdjustmentLocked" style="float: left;">
             {{ editMode ?  translatedText.完成  :   translatedText.調整   }}
-    
-      </el-button>
+
+          </el-button>
       <!-- 合併欄位開關 -->
       <el-switch
         v-model="isMergeEnabled"
